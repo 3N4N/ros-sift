@@ -26,8 +26,7 @@ int main()
 
   // cv::imwrite(fp_outimg, output);
 
-  cv::namedWindow("image", cv::WINDOW_NORMAL);
-  cv::resizeWindow("image", 1024, 1024);
+  cv::namedWindow("image", cv::WINDOW_AUTOSIZE);
   cv::imshow("image", output);
   cv::waitKey(0);
   cv::destroyWindow("image");
