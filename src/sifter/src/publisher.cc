@@ -11,7 +11,7 @@
 #include <opencv2/features2d.hpp>
 
 // https://riptutorial.com/opencv/example/21401/get-image-from-webcam
-int getWebcamImg(cv::Mat frame, const int cam = 0)
+int getWebcamImg(cv::Mat& frame, const int cam = 0)
 {
   cv::VideoCapture camera(cam);
   if (!camera.isOpened()) {
@@ -24,16 +24,19 @@ int getWebcamImg(cv::Mat frame, const int cam = 0)
   return 0;
 }
 
-cv::Mat getSIFTedImg(cv::Mat input)
+int getSIFTedImg(const cv::Mat& input, cv::Mat& output)
 {
+  if (input.empty()) {
+    return 1;
+  }
+
   cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
   std::vector<cv::KeyPoint> keypoints;
   siftPtr->detect(input, keypoints);
 
-  cv::Mat output;
   cv::drawKeypoints(input, keypoints, output);
 
-  return output;
+  return 0;
 }
 
 int main(int argc, char **argv)
@@ -54,13 +57,18 @@ int main(int argc, char **argv)
 
   while (ros::ok()) {
     cv::Mat input;
-    getWebcamImg(input, 0);
-    cv::Mat output = getSIFTedImg(input);
-    cv_ptr->image = output;
-    image_pub_.publish(cv_ptr->toImageMsg());
-    ROS_INFO("ImageMsg Sent.");
-    ros::spinOnce();
-    lr.sleep();
+    cv::Mat output;
+
+    if (!getWebcamImg(input, 0)) {
+      if (!getSIFTedImg(input, output)) {
+        cv_ptr->image = output;
+        image_pub_.publish(cv_ptr->toImageMsg());
+        ROS_INFO("ImageMsg Sent");
+
+        ros::spinOnce();
+        lr.sleep();
+      }
+    }
   }
 
   return 0;
