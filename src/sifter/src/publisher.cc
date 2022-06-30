@@ -11,7 +11,7 @@
 #include <opencv2/features2d.hpp>
 
 // https://riptutorial.com/opencv/example/21401/get-image-from-webcam
-cv::Mat getWebcamImg(const int cam = 0)
+int getWebcamImg(cv::Mat frame, const int cam = 0)
 {
   cv::VideoCapture camera(cam);
   if (!camera.isOpened()) {
@@ -19,10 +19,9 @@ cv::Mat getWebcamImg(const int cam = 0)
     return 1;
   }
 
-  cv::Mat frame;
   camera >> frame;
 
-  return frame;
+  return 0;
 }
 
 cv::Mat getSIFTedImg(cv::Mat input)
@@ -39,7 +38,7 @@ cv::Mat getSIFTedImg(cv::Mat input)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "draw_circle");
+  ros::init(argc, argv, "vis_sift_img");
   ros::NodeHandle n;
   ros::Rate lr(1);
   ros::Time time = ros::Time::now();
@@ -54,11 +53,12 @@ int main(int argc, char **argv)
   cv_ptr->header.frame_id = "traj_output";
 
   while (ros::ok()) {
-    cv::Mat input = getWebcamImg(0);
+    cv::Mat input;
+    getWebcamImg(input, 0);
     cv::Mat output = getSIFTedImg(input);
     cv_ptr->image = output;
     image_pub_.publish(cv_ptr->toImageMsg());
-    ROS_INFO("ImageMsg Send.");
+    ROS_INFO("ImageMsg Sent.");
     ros::spinOnce();
     lr.sleep();
   }
