@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(sifter)
 
-set(EXE "sifter")
-
-find_package(catkin REQUIRED COMPONENTS roscpp rospy roslib)
+find_package(
+  catkin REQUIRED
+  COMPONENTS roscpp rospy roslib image_transport cv_bridge
+)
 
 catkin_package(
   # INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp rospy roslib
+  # CATKIN_DEPENDS roscpp rospy roslib
 )
 
 include_directories()
@@ -22,13 +23,18 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_executable(${EXE} src/sifter.cc)
+add_executable(sift src/sifter.cc)
 target_link_libraries(
-  ${EXE}
+  sift
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
 )
 
-set_property(TARGET ${EXE} PROPERTY CXX_STANDARD 17)
+add_executable(publish src/publisher.cc)
+target_link_libraries(
+  publish
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+)
 
-file(COPY assets DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_BIN_DESTINATION})
+# set_property(TARGET sift PROPERTY CXX_STANDARD 17)

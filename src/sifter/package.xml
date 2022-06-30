@@ -53,6 +53,7 @@
   <depend>rospy</depend>
   <build_depend>roslib</build_depend>
   <exec_depend>roslib</exec_depend>
+  <build_depend>cv_bridge</build_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
