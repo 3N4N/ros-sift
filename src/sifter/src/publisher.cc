@@ -1,6 +1,7 @@
 #include <sstream>
 
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <std_msgs/String.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
@@ -9,77 +10,58 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
+// https://riptutorial.com/opencv/example/21401/get-image-from-webcam
+cv::Mat getWebcamImg(const int cam = 0)
+{
+  cv::VideoCapture camera(cam);
+  if (!camera.isOpened()) {
+    std::cerr << "ERROR: Could not open camera\n";
+    return 1;
+  }
 
-// int main(int argc, char **argv)
-// {
-//   ros::init(argc, argv, "talker");
-//   ros::NodeHandle n;
+  cv::Mat frame;
+  camera >> frame;
 
-//   ros::Publisher pub = n.advertise<std_msgs::String>("chatter", 1000);
-//   ros::Rate loop_rate(10);
+  return frame;
+}
 
-//   int count = 0;
-//   while (ros::ok()) {
-//     std_msgs::String msg;
+cv::Mat getSIFTedImg(cv::Mat input)
+{
+  cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
+  std::vector<cv::KeyPoint> keypoints;
+  siftPtr->detect(input, keypoints);
 
-//     std::stringstream ss;
-//     ss << "hello world " << count;
-//     msg.data = ss.str();
+  cv::Mat output;
+  cv::drawKeypoints(input, keypoints, output);
 
-//     ROS_INFO("%s", msg.data.c_str());
-
-//     pub.publish(msg);
-
-//     ros::spinOnce();
-
-//     loop_rate.sleep();
-//     ++count;
-//   }
-
-//   return 0;
-// }
+  return output;
+}
 
 int main(int argc, char **argv)
 {
-  int trajectory[3] = { 512, 612, 712 };
-  cv::Mat image(1024, 1024, CV_8UC3);
-
-  for (int i = 0; i < 3; i++) {
-    cv::circle(image, cv::Point(trajectory[i], trajectory[i]), 100, CV_RGB(255, 0, 0));
-  }
-
-#if 0
-  cv::namedWindow("image", CV_WINDOW_NORMAL);
-  cv::resizeWindow("image", 1024, 1024);
-  cv::imshow("image", image);
-  cv::waitKey(0);
-  cv::destroyWindow("image");
-#endif
-
-#if 1
   ros::init(argc, argv, "draw_circle");
   ros::NodeHandle n;
+  ros::Rate lr(1);
+  ros::Time time = ros::Time::now();
+
   image_transport::ImageTransport it_(n);
   image_transport::Publisher image_pub_ = it_.advertise("traj_output", 1);
-  ros::Rate lr(1);
 
   cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
 
-# if 1
-  ros::Time time = ros::Time::now();
-  cv_ptr->encoding = "bgr8";
+  cv_ptr->encoding = "bgr8";    // TODO: which encoding to use?
   cv_ptr->header.stamp = time;
-  cv_ptr->header.frame_id = "/traj_output";
-# endif
+  cv_ptr->header.frame_id = "traj_output";
 
   while (ros::ok()) {
-    cv_ptr->image = image;
+    cv::Mat input = getWebcamImg(0);
+    cv::Mat output = getSIFTedImg(input);
+    cv_ptr->image = output;
     image_pub_.publish(cv_ptr->toImageMsg());
     ROS_INFO("ImageMsg Send.");
     ros::spinOnce();
     lr.sleep();
   }
 
-#endif
   return 0;
 }
