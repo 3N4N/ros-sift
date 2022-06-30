@@ -23,7 +23,14 @@ int main()
 
   cv::Mat output;
   cv::drawKeypoints(input, keypoints, output);
-  cv::imwrite(fp_outimg, output);
+
+  // cv::imwrite(fp_outimg, output);
+
+  cv::namedWindow("image", cv::WINDOW_NORMAL);
+  cv::resizeWindow("image", 1024, 1024);
+  cv::imshow("image", output);
+  cv::waitKey(0);
+  cv::destroyWindow("image");
 
   return 0;
 }
