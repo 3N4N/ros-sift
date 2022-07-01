@@ -10,12 +10,15 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
+#define ERRSIFT "ERROR: Could not SIFT image\n"
+#define ERRCAM "ERROR: Could not open camera\n"
+
 // https://riptutorial.com/opencv/example/21401/get-image-from-webcam
 int getWebcamImg(cv::Mat& frame, const int cam = 0)
 {
   cv::VideoCapture camera(cam);
   if (!camera.isOpened()) {
-    std::cerr << "ERROR: Could not open camera\n";
+    std::cerr << ERRCAM;
     return 1;
   }
 
@@ -24,19 +27,37 @@ int getWebcamImg(cv::Mat& frame, const int cam = 0)
   return 0;
 }
 
-int getSIFTedImg(const cv::Mat& input, cv::Mat& output)
+int getSIFTedImg(const cv::Mat& image,
+                 cv::Mat& descriptors,
+                 std::vector<cv::KeyPoint>& keypoints)
 {
-  if (input.empty()) {
+  if (image.empty()) {
+    std::cerr << ERRSIFT;
     return 1;
   }
 
+  // TODO:
+  // learn why detectAndCompute() takes mask in the middle
+  // while detect and compute separately defaults the mask to zero
   cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
-  std::vector<cv::KeyPoint> keypoints;
-  siftPtr->detect(input, keypoints);
-
-  cv::drawKeypoints(input, keypoints, output);
+  siftPtr->detect(image, keypoints);
+  siftPtr->compute(image, keypoints, descriptors);
 
   return 0;
+}
+
+void drawMatches(const cv::Mat& img1,
+    const std::vector<cv::KeyPoint> kp1,
+    const cv::Mat& img2,
+    const std::vector<cv::KeyPoint> kp2,
+    std::vector<cv::DMatch> matches,
+    cv::Mat& img_matches
+    )
+{
+  cv::namedWindow("matches", 1);
+  cv::drawMatches(img1, kp1, img2, kp2, matches, img_matches);
+  cv::imshow("matches", img_matches);
+  cv::waitKey(0);
 }
 
 int main(int argc, char **argv)
@@ -55,13 +76,33 @@ int main(int argc, char **argv)
   cv_ptr->header.stamp = time;
   cv_ptr->header.frame_id = "traj_output";
 
-  while (ros::ok()) {
-    cv::Mat input;
-    cv::Mat output;
+  std::string fp_input = ros::package::getPath("sifter") + "/assets/input.jpg";
+  const cv::Mat image = cv::imread(fp_input); //, cv::IMREAD_GRAYSCALE);
+  cv::Mat desc_image;
+  std::vector<cv::KeyPoint> kp_image;
 
-    if (!getWebcamImg(input, 0)) {
-      if (!getSIFTedImg(input, output)) {
-        cv_ptr->image = output;
+  std::cout << image.empty() << "\n";
+
+  if (getSIFTedImg(image, desc_image, kp_image)) {
+    std::cerr << ERRSIFT;
+    return 1;
+  }
+
+  cv::Mat frame;
+  cv::Mat desc_frame;
+  std::vector<cv::KeyPoint> kp_frame;
+  cv::Mat img_matches;
+
+  while (ros::ok()) {
+    if (!getWebcamImg(frame, 0)) {
+      if (!getSIFTedImg(frame, desc_frame, kp_frame)) {
+        std::vector<cv::DMatch> matches;
+        cv::BFMatcher matcher(cv::NORM_L1, true);
+        matcher.match(desc_frame, desc_image, matches);
+        cv::drawMatches(frame, kp_frame, image, kp_image, matches, img_matches);
+
+
+        cv_ptr->image = img_matches;
         image_pub_.publish(cv_ptr->toImageMsg());
         ROS_INFO("ImageMsg Sent");
 
