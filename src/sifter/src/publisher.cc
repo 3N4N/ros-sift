@@ -24,6 +24,10 @@ int getWebcamImg(cv::Mat& frame, const int cam = 0)
 
   camera >> frame;
 
+  if (!frame.empty()) {
+    cv::cvtColor(frame, frame, CV_BGR2GRAY);
+  }
+
   return 0;
 }
 
@@ -63,7 +67,12 @@ int main(int argc, char **argv)
   cv_ptr->header.frame_id = "traj_output";
 
   std::string fp_input = ros::package::getPath("sifter") + "/assets/input.jpg";
-  const cv::Mat image = cv::imread(fp_input); //, cv::IMREAD_GRAYSCALE);
+  if (argc == 2) {
+    fp_input = argv[1];
+  }
+  ROS_INFO("Getting image from %s\n", fp_input.c_str());
+
+  const cv::Mat image = cv::imread(fp_input, cv::IMREAD_GRAYSCALE);
   cv::Mat desc_image;
   std::vector<cv::KeyPoint> kp_image;
 
