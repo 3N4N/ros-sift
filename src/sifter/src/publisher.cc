@@ -46,20 +46,6 @@ int getSIFTedImg(const cv::Mat& image,
   return 0;
 }
 
-void drawMatches(const cv::Mat& img1,
-    const std::vector<cv::KeyPoint> kp1,
-    const cv::Mat& img2,
-    const std::vector<cv::KeyPoint> kp2,
-    std::vector<cv::DMatch> matches,
-    cv::Mat& img_matches
-    )
-{
-  cv::namedWindow("matches", 1);
-  cv::drawMatches(img1, kp1, img2, kp2, matches, img_matches);
-  cv::imshow("matches", img_matches);
-  cv::waitKey(0);
-}
-
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "vis_sift_img");
@@ -81,8 +67,6 @@ int main(int argc, char **argv)
   cv::Mat desc_image;
   std::vector<cv::KeyPoint> kp_image;
 
-  std::cout << image.empty() << "\n";
-
   if (getSIFTedImg(image, desc_image, kp_image)) {
     std::cerr << ERRSIFT;
     return 1;
@@ -100,7 +84,6 @@ int main(int argc, char **argv)
         cv::BFMatcher matcher(cv::NORM_L1, true);
         matcher.match(desc_frame, desc_image, matches);
         cv::drawMatches(frame, kp_frame, image, kp_image, matches, img_matches);
-
 
         cv_ptr->image = img_matches;
         image_pub_.publish(cv_ptr->toImageMsg());
